@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cropping</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.container {
+  text-align: center;
+}
+
+.canvas-container {
+  position: relative;
+  width: 600px;
+  height: 400px;
+  margin-top: 20px;
+  border: 2px solid #ccc;
+  overflow: hidden; /* Ensures the image is clipped if larger than canvas */
+}
+
+#canvas {
+  cursor: move;
+}
+
+.button-container {
+  margin-top: 10px;
+}
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Photo cropping</h1>
+    <input type="file" id="file-input" accept="image/*">
+    <div class="canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="button-container">
+      <button id="save-btn">Save</button>
+    </div>
+  </div>
+  <script>
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let imageObj = null;
+let isDragging = false;
+let startX, startY, offsetX, offsetY;
+
+document.getElementById('file-input').addEventListener('change', function(event) {
+  let file = event.target.files[0];
+  if (!file) return;
+
+  let reader = new FileReader();
+  reader.onload = function(event) {
+    imageObj = new Image();
+    imageObj.onload = function() {
+      fitImageToCanvas(imageObj); // Fit the image to the canvas
+    };
+    imageObj.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+canvas.addEventListener('mousedown', function(event) {
+  if (!imageObj) return;
+
+  startX = event.offsetX;
+  startY = event.offsetY;
+  offsetX = startX;
+  offsetY = startY;
+  isDragging = true;
+});
+
+canvas.addEventListener('mousemove', function(event) {
+  if (!imageObj) return;
+  
+  if (isDragging) {
+    let dx = event.offsetX - startX;
+    let dy = event.offsetY - startY;
+
+    // Calculate new image position
+    let newX = offsetX + dx;
+    let newY = offsetY + dy;
+
+    // Check boundaries to keep image within canvas
+    if (newX > 0) newX = 0;
+    if (newY > 0) newY = 0;
+    if (newX < canvas.width - imageObj.width) newX = canvas.width - imageObj.width;
+    if (newY < canvas.height - imageObj.height) newY = canvas.height - imageObj.height;
+
+    // Clear canvas and redraw image at new position
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imageObj, newX, newY);
+
+    offsetX = newX;
+    offsetY = newY;
+  }
+});
+
+canvas.addEventListener('mouseup', function() {
+  isDragging = false;
+});
+
+document.getElementById('save-btn').addEventListener('click', function() {
+  if (!imageObj) return;
+
+  // Extract original file name (assuming the input file has a name)
+  let originalFileName = document.getElementById('file-input').files[0].name;
+  
+  // Create a new file name with the original name + '_Edited3.png'
+  let editedFileName = originalFileName.replace(/\.[^/.]+$/, "") + '_Edited3.png';
+
+  // Save canvas content as an image with the edited file name
+  let dataURL = canvas.toDataURL('image/png');
+  let a = document.createElement('a');
+  a.href = dataURL;
+  a.download = editedFileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+});
+
+
+function fitImageToCanvas(image) {
+  let scale = Math.min(canvas.width / image.width, canvas.height / image.height);
+  let newWidth = image.width * scale;
+  let newHeight = image.height * scale;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0, newWidth, newHeight);
+}
+
+
+  </script>
+</body>
+</html>
